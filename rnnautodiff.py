@@ -70,7 +70,7 @@ class Layer():
         pass
 
     def backpropogate(self, acc=1):
-        acc *= self.backwards(acc)
+        acc = self.backwards(acc)
         if self.prev:
             self.prev.backpropogate(acc)
 
@@ -105,6 +105,7 @@ class FeedforwardLayer(Layer):
         self.input = X
         self.H = np.dot(X, self.W)
         return super().propogate(X)
+    
     def backpropogate(self, acc=1):
         self.W += clip_gradient(Layer.alpha * acc * self.dhdw(), 3.0)
         #print(f"{self.input.item()} -> {self.H.item()} Updating weight by {Layer.alpha} * {acc} * {self.dhdw()}")
