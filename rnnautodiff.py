@@ -2,8 +2,25 @@ import numpy as np
 
 # Used https://www.youtube.com/watch?v=UpLtbV4L6PI as reference
 
+
+# Glorot Beningo
+def init_weights(shape):
+    # Calculate the range of the uniform distribution
+    limit = np.sqrt(6 / np.sum(shape))
+    
+    # Initialize the weights with values drawn from a uniform distribution
+    weights = np.random.uniform(-limit, limit, shape)
+    
+    return weights
+
+def clip_gradient(grad, max_norm):
+    grad_norm = np.linalg.norm(grad)
+    if grad_norm > max_norm:
+        grad = grad * (max_norm / grad_norm)
+    return grad
+
 class Layer():
-    alpha = 0.01
+    alpha = 0.001
 
     def getHeader():
         return "=" * 36
@@ -11,6 +28,8 @@ class Layer():
     def __init__(self):
         self.prev = None
         self.n = None
+        self.input = []
+        self.H = []
 
     def propogate(self, X):
         if self.n:
@@ -22,7 +41,7 @@ class Layer():
         output = np.zeros_like(X)
         c = 0
         for i in X:
-            output[c] = self.propogate(i)
+            output[c] = self.propogate(X[c])
             
             c += 1
 
@@ -32,10 +51,6 @@ class Layer():
         c = 0
         for acc in accs:
             self.backpropogate(acc)
-
-    def start(self):
-        self.prev = None
-        return self
 
     def next(self, n):
         self.n = n
@@ -82,7 +97,7 @@ class FeedforwardLayer(Layer):
 
     def __init__(self, inputsize, size=10):
         super().__init__()
-        self.W = np.random.randn(inputsize, size)
+        self.W = init_weights((inputsize, size))
         self.H = np.zeros(size)
         self.input = np.zeros(inputsize)
 
@@ -90,9 +105,9 @@ class FeedforwardLayer(Layer):
         self.input = X
         self.H = np.dot(X, self.W)
         return super().propogate(X)
-
     def backpropogate(self, acc=1):
-        self.W -= Layer.alpha * acc
+        self.W += clip_gradient(Layer.alpha * acc * self.dhdw(), 3.0)
+        #print(f"{self.input.item()} -> {self.H.item()} Updating weight by {Layer.alpha} * {acc} * {self.dhdw()}")
 
         super().backpropogate(acc)
 
@@ -127,7 +142,7 @@ class Sigmoid(Layer):
         return 1/(1 + np.exp(-X))
 
     def dsigmoid(self, X):
-        return self.sigmoid(X) - (1 - self.sigmoid(X))
+        return self.sigmoid(X) * (1 - self.sigmoid(X))
 
     def propogate(self, X):
         self.input = X
@@ -154,7 +169,7 @@ class Error:
 
 class MeanSquareError(Error):
     def MSE(self, pred, true):
-        return np.mean((true - pred)**2)
+        return ((true - pred)**2)
 
     def getError(self, pred, true):
         return self.MSE(pred, true)
@@ -171,4 +186,4 @@ class Trainer:
             model.backpropogateRange(error.getDeriv(pred, y))
 
             if epoch % printinterval == 0:
-                print(f"Epoch {epoch}: {loss}")
+                print(f"Epoch {epoch}: {np.mean(loss)}")

@@ -1,12 +1,16 @@
 import numpy as np
 from rnnautodiff import *
 
-xdata = np.random.randn(100)
-ydata = xdata * 3
+xdata = np.array([1,2,3,40])
+ydata = 2 * Sigmoid().sigmoid(xdata)
 
-model = FeedforwardLayer(1, 1)
+model = FeedforwardLayer(1, 10).next(Sigmoid()) \
+  .next(FeedforwardLayer(10, 1)).end()
 
-Trainer.train(model, xdata, ydata, MeanSquareError(), 100)
+model.print()
+
+Trainer.train(model, xdata, ydata, MeanSquareError(), 120)
 
 print("==============\nTraining done")
-print(model.propogate(3))
+print(model.propogate(100))
+model.print()
