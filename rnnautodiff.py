@@ -49,9 +49,9 @@ class Layer():
 
         return output
     
-    def backpropogateRange(self, accs):
-        c = 0
-        for acc in accs:
+    def backpropogateRange(self, accs, X):
+        for acc, x in zip(accs, X):
+            self.input = x
             self.backpropogate(acc)
 
     def next(self, n):
@@ -208,7 +208,7 @@ class Trainer:
                 pred = model.propogateRange(batch_X).squeeze()
                 losses.append(np.mean(error.getError(pred, batch_Y)))
 
-                model.backpropogateRange(error.getDeriv(pred, batch_Y))
+                model.backpropogateRange(error.getDeriv(pred, batch_Y), batch_X)
                 if d_debug: 
                     input()
                     print(Layer.getHeader())
