@@ -2,7 +2,7 @@ import numpy as np
 
 # Used https://www.youtube.com/watch?v=UpLtbV4L6PI as reference
 
-d_debug = True
+d_debug = False
 
 # Glorot Beningo
 def init_weights(shape):
@@ -128,7 +128,7 @@ class FeedforwardLayer(Layer):
 
         for i in range(M.shape[0]):
             for j in range(M.shape[1]):
-                M[i][j] = self.input[i]
+                M[i][j] = self.input[i] if not np.isscalar(self.input) else self.input
 
         return M
         #return self.input * np.ones_like(self.W)
