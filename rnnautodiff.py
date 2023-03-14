@@ -2,6 +2,7 @@ import numpy as np
 
 # Used https://www.youtube.com/watch?v=UpLtbV4L6PI as reference
 
+d_debug = True
 
 # Glorot Beningo
 def init_weights(shape):
@@ -20,7 +21,7 @@ def clip_gradient(grad, max_norm):
     return grad
 
 class Layer():
-    alpha = 0.001
+    alpha = 0.01
 
     def getHeader():
         return "=" * 36
@@ -38,7 +39,8 @@ class Layer():
             return self.H
         
     def propogateRange(self, X):
-        output = np.zeros_like(X)
+        outputsize = self.propogate(X[0]).shape[0]
+        output = np.zeros((X.shape[0], outputsize))
         c = 0
         for i in X:
             output[c] = self.propogate(X[c])
@@ -107,8 +109,11 @@ class FeedforwardLayer(Layer):
         return super().propogate(X)
     
     def backpropogate(self, acc=1):
-        self.W += clip_gradient(Layer.alpha * acc * self.dhdw(), 3.0)
-        #print(f"{self.input.item()} -> {self.H.item()} Updating weight by {Layer.alpha} * {acc} * {self.dhdw()}")
+        dW = clip_gradient(Layer.alpha * np.dot(acc, self.dhdw()), 2.0)
+        self.W += dW
+        assert dW.shape == self.W.shape
+        if d_debug: 
+            print(f"{self.input} -> {self.H} Updating weight by {Layer.alpha} * {acc} * {self.dhdw()} = {dW}")
 
         super().backpropogate(acc)
 
@@ -119,7 +124,15 @@ class FeedforwardLayer(Layer):
         return self.W
 
     def dhdw(self):
-        return self.input * np.ones_like(self.W)
+        M = np.zeros_like(self.W)
+
+        for i in range(M.shape[0]):
+            for j in range(M.shape[1]):
+                M[i][j] = self.input[i]
+
+        return M
+        #return self.input * np.ones_like(self.W)
+        #return np.dot(self.input, np.ones_like(self.W))
 
     def print(self):
         print(Layer.getHeader())
@@ -180,11 +193,25 @@ class MeanSquareError(Error):
     
 
 class Trainer:
-    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1):
+    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1, batchsize=32):
+        batchsize = batchsize if batchsize < x.shape[0] else x.shape[0]
+        batchcount = int(np.ceil(x.shape[0] / batchsize))
         for epoch in range(epochs):
-            pred = model.propogateRange(x)
-            loss = error.getError(pred, y)
-            model.backpropogateRange(error.getDeriv(pred, y))
+            losses = []
+            for i in range(batchcount):
+
+                start_idx = i * batchsize
+                end_idx = min(start_idx + batchsize, x.shape[0])
+                batch_X = x[start_idx:end_idx]
+                batch_Y = y[start_idx:end_idx]
+
+                pred = model.propogateRange(batch_X).squeeze()
+                losses.append(np.mean(error.getError(pred, batch_Y)))
+
+                model.backpropogateRange(error.getDeriv(pred, batch_Y))
+                if d_debug: 
+                    input()
+                    print(Layer.getHeader())
 
             if epoch % printinterval == 0:
-                print(f"Epoch {epoch}: {np.mean(loss)}")
+                print(f"Epoch {epoch}: {np.mean(losses)}")
