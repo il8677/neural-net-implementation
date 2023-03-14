@@ -105,7 +105,7 @@ class FeedforwardLayer(Layer):
 
     def propogate(self, X):
         self.input = X
-        self.H = np.dot(X, self.W)
+        self.H = np.dot(self.W, X)
         return super().propogate(X)
     
     def backpropogate(self, acc=1):
@@ -121,18 +121,11 @@ class FeedforwardLayer(Layer):
         return dldh * self.dhdi()
     
     def dhdi(self):
-        return self.W
+        return np.dot(self.W, np.ones_like(self.input))
 
     def dhdw(self):
-        M = np.zeros_like(self.W)
-
-        for i in range(M.shape[0]):
-            for j in range(M.shape[1]):
-                M[i][j] = self.input[i] if not np.isscalar(self.input) else self.input
-
-        return M
         #return self.input * np.ones_like(self.W)
-        #return np.dot(self.input, np.ones_like(self.W))
+        return np.dot(self.input, np.ones_like(self.W))
 
     def print(self):
         print(Layer.getHeader())

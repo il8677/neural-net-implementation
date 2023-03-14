@@ -1,10 +1,7 @@
 from rnnautodiff import *
 import numpy as np
 import unittest
-
-def testModelDerivatives():
-    epsilon = 1e-15
-
+'''
 class StaticTests(unittest.TestCase):
     def test_ff_deriv11(self):
         ffl = FeedforwardLayer(1, 1)
@@ -49,10 +46,57 @@ class StaticTests(unittest.TestCase):
             [20,20,20]
         ])
         np.testing.assert_array_equal(ffl.dhdw(), correctAns)
+'''
         
 
-class NumericalChecks(unittest):
-    pass
+class NumericalChecks(unittest.TestCase):
+    epsilon = 1e-7
+    acceptableMargin = 1e-7
+
+    def test_ff_dhdw(self):
+        ffl = FeedforwardLayer(3,3)
+
+        # test dhdw
+        X = np.array([2,3,4], np.float64)
+        ffl.W = np.array([
+            [-2, -3, -4],
+            [2, 3, 4],
+            [-2, -3, -4]
+        ], np.float64)
+        f1 = ffl.propogate(X)
+        ffl.W += self.epsilon
+        f2 = ffl.propogate(X)
+        ffl.W -= self.epsilon
+
+        ndf = (f2 - f1)/(self.epsilon)
+        sdf = ffl.dhdw()
+
+        diff = np.abs(sdf - ndf)
+
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
+
+    def test_ff_dhdi(self):
+        ffl = FeedforwardLayer(3,3)
+
+        # test dhdw
+        X = np.array([2,3,4], np.float64)
+        ffl.W = np.array([
+            [-2, -3, -4],
+            [2, 3, 4],
+            [5, 6, 7]
+        ], np.float64)
+        f1 = ffl.propogate(X)
+        sdf = ffl.dhdi()
+        X += self.epsilon
+        f2 = ffl.propogate(X)
+        X -= self.epsilon
+
+        ndf = (f2 - f1)/(self.epsilon)
+
+        diff = np.abs(sdf - ndf)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
 
 if __name__=="__main__":
     unittest.main()
