@@ -71,10 +71,10 @@ class Layer():
     def backwards(self, dldh):
         pass
 
-    def backpropogate(self, acc=1):
-        acc = self.backwards(acc)
+    def backpropogate(self, dldh=1):
+        dldh = self.backwards(dldh)
         if self.prev:
-            self.prev.backpropogate(acc)
+            self.prev.backpropogate(dldh)
 
     def print(self):
         if self.n:
@@ -104,28 +104,29 @@ class FeedforwardLayer(Layer):
         self.input = np.zeros(inputsize)
 
     def propogate(self, X):
+        X = np.asarray(X)
         self.input = X
-        self.H = np.dot(self.W, X)
+        self.H = np.dot(X, self.W)
         return super().propogate(X)
     
-    def backpropogate(self, acc=1):
-        dW = clip_gradient(Layer.alpha * np.dot(acc, self.dhdw()), 2.0)
+    def backpropogate(self, dldh=1):
+        dW = clip_gradient(Layer.alpha * self.dldw(dldh), 2.0)
         self.W += dW
         assert dW.shape == self.W.shape
         if d_debug: 
-            print(f"{self.input} -> {self.H} Updating weight by {Layer.alpha} * {acc} * {self.dhdw()} = {dW}")
+            print(f"{self.input} -> {self.H} Updating weight by {Layer.alpha} * {dldh} * {self.dhdw()} = {dW}")
 
-        super().backpropogate(acc)
+        super().backpropogate(dldh)
 
     def backwards(self, dldh):
         return dldh * self.dhdi()
     
     def dhdi(self):
-        return np.dot(self.W, np.ones_like(self.input))
+        return np.dot(np.ones_like(self.input), self.W)
 
-    def dhdw(self):
+    def dldw(self, dldh):
         #return self.input * np.ones_like(self.W)
-        return np.dot(self.input, np.ones_like(self.W))
+        return np.outer(self.input.T, dldh)
 
     def print(self):
         print(Layer.getHeader())
@@ -157,7 +158,7 @@ class Sigmoid(Layer):
         return super().propogate(X)
 
     def backwards(self, dldh):
-        return dldh * self.dsigmoid(self.H)
+        return dldh * self.dsigmoid(self.input)
     
     def print(self):
         print(Layer.getHeader())
@@ -175,14 +176,23 @@ class Error:
         raise NotImplementedError()
 
 class MeanSquareError(Error):
+    # E(t,p) = sum i < k (ti - pi)**2 / k
+    # Scalar Derivative
+    # de/dtj = sum i < k 1/k d((ti-pi)**2)/dtj
+    #        = 1/k d((tj-pj)**2)/dtj
+    #        = 1/k d(u**2)/du  (tj-pj)/dtj
+    #        = 1/k 2u * 1
+    #        = 1/k 2(tj-pj)
+    # Vectorize
+    # foreach i < k 2(tj-pj)/k
     def MSE(self, pred, true):
-        return ((true - pred)**2)
+        return np.mean((true - pred)**2)
 
     def getError(self, pred, true):
         return self.MSE(pred, true)
     
     def getDeriv(self, pred, true):
-        return 2 * (true - pred)
+        return 2 * (true - pred) / pred.size 
     
 
 class Trainer:
