@@ -176,6 +176,32 @@ class Sigmoid(Layer):
 
         super().print()
 
+class Tanh(Layer):
+    def __init__(self):
+        super().__init__()
+
+    def tanh(self, X):
+        return np.tanh(X)
+
+    def dtanh(self, X):
+        return 1 - np.power(np.tanh(X), 2)
+
+    def propogate(self, X):
+        self.input = X
+        self.H = self.tanh(X)
+        return super().propogate(X)
+
+    def backwards(self, dldh):
+        return dldh * self.dtanh(self.input)
+    
+    def print(self):
+        print(Layer.getHeader())
+        print("Sigmoid Layer")
+        print(self.input)
+        print(self.H)
+
+        super().print()
+
 class Error:
     def getError(self, pred, true):
         raise NotImplementedError()

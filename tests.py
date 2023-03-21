@@ -231,6 +231,17 @@ class NumericalChecks(unittest.TestCase):
         diff = np.abs(sdl - ndl)
         self.assertLess(np.mean(diff), self.acceptableMargin)
 
+    def test_tanh(self):
+        t = Tanh()
+
+        f1 = t.propogate(2.0)
+        f2 = t.propogate(2.0 + self.epsilon)
+
+        ndt = (f2 - f1) / self.epsilon
+        sdt = t.backwards(1)
+
+        diff = np.abs(sdt - ndt)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
 
 if __name__=="__main__":
     unittest.main()
