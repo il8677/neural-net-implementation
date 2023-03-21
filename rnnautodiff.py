@@ -33,11 +33,14 @@ class Layer():
         self.input = []
         self.H = []
 
-    def propogate(self, X):
+    def propogate_forward(self, X, H):
         if self.n:
-            return self.n.propogate(self.H)
+            return self.n.propogate(H)
         else:
             return self.H
+        
+    def propogate(self, X):
+        return self.propogate_forward(X, self.H)
         
     def propogateRange(self, X):
         outputsize = self.propogate(X[0]).shape[0]
@@ -52,8 +55,8 @@ class Layer():
     
     def backpropogateRange(self, accs, X):
         for acc, x in zip(accs, X):
-            self.end().propogate(x)
-            self.backpropogate(acc)
+            self.propogate(x)
+            self.prop_backprop(acc)
 
     def next(self, n):
         self.n = n
@@ -78,10 +81,15 @@ class Layer():
     def backwards(self, dldh):
         pass
 
+    def prop_backprop(self, dldh):
+        if self.n:
+            dldh = self.n.prop_backprop(dldh)
+        
+        return self.backpropogate(dldh)
+
     def backpropogate(self, dldh=1):
         dldh = self.backwards(dldh)
-        if self.prev:
-            self.prev.backpropogate(dldh)
+        return dldh
 
     def print(self):
         if self.n:
@@ -123,7 +131,7 @@ class FeedforwardLayer(Layer):
         self.W += dW
         if d_debug: 
             print(f"{self.input} -> {self.H} Updating weight by {Layer.alpha} * {dldh} * {self.dhdw()} = {dW}")
-        super().backpropogate(dldh)
+        return super().backpropogate(dldh)
 
 
     def backwards(self, dldh):
@@ -245,7 +253,7 @@ class Trainer:
                 pred = model.propogateRange(batch_X).squeeze()
                 losses.append(np.mean(error.getError(pred, batch_Y)))
 
-                model.tail().backpropogateRange(error.getDeriv(pred, batch_Y), batch_X)
+                model.backpropogateRange(error.getDeriv(pred, batch_Y), batch_X)
                 if d_debug: 
                     input()
                     print(Layer.getHeader())
