@@ -63,17 +63,74 @@ class NumericalChecks(unittest.TestCase):
             [2, 3, 4],
             [5, 6, 7]
         ], np.float64)
-        f1 = ffl.propogate(X)
+        
+        ndf = np.zeros_like(ffl.W)
+
+        for i in np.ndindex(X.shape):
+            f1 = ffl.propogate(X)
+            X[i] += self.epsilon
+            f2 = ffl.propogate(X)
+            X[i] -= self.epsilon
+
+            ndf[i] = (f2 - f1)/(self.epsilon)
+        
         sdf = ffl.dhdi()
-        X += self.epsilon
-        f2 = ffl.propogate(X)
-        X -= self.epsilon
-
-        ndf = (f2 - f1)/(self.epsilon)
-
         diff = np.abs(sdf - ndf)
         self.assertLess(np.mean(diff), self.acceptableMargin)
     
+    def test_ff_dhdi2(self):
+        ffl = FeedforwardLayer(3,4)
+
+        # test dhdw
+        X = np.array([2,3,4], np.float64)
+        ffl.W = np.array([
+            [-2, -3, -4, -5],
+            [2, 3, 4, 5],
+            [5, 6, 7, 8],
+        ], np.float64)
+        
+        ndf = np.zeros_like(ffl.W)
+
+        for i in np.ndindex(X.shape):
+            f1 = ffl.propogate(X)
+            X[i] += self.epsilon
+            f2 = ffl.propogate(X)
+            X[i] -= self.epsilon
+
+            ndf[i] = (f2 - f1)/(self.epsilon)
+        
+        sdf = ffl.dhdi()
+        diff = np.abs(sdf - ndf)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
+    def test_ff_dhdi3(self):
+        ffl = FeedforwardLayer(4,3)
+
+        # test dhdw
+        X = np.array([2,3,4,5], np.float64)
+        ffl.W = np.array([
+            [-2, -3, -4],
+            [2, 3, 4],
+            [5, 6, 7],
+            [5, 6, 7]
+        ], np.float64)
+        
+        ndf = np.zeros_like(ffl.W)
+
+        for i in np.ndindex(X.shape):
+            f1 = ffl.propogate(X)
+            X[i] += self.epsilon
+            f2 = ffl.propogate(X)
+            X[i] -= self.epsilon
+
+            ndf[i] = (f2 - f1)/(self.epsilon)
+        
+        sdf = ffl.dhdi()
+        diff = np.abs(sdf - ndf)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+    
+
+
     def test_mse(self):
         mse = MeanSquareError()
         pred = np.array([1,2,3,4,5], np.float64)
@@ -134,6 +191,41 @@ class NumericalChecks(unittest.TestCase):
             ndl[iy, ix] = (f1 - f2)/self.epsilon
 
         dlds = sig.backwards(mse.getDeriv(pred, actual))
+        sdl = ff1.dldw(dlds)
+
+        diff = np.abs(sdl - ndl)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
+    def test_dldw2(self):
+        mse = MeanSquareError()
+        ff1 = FeedforwardLayer(2, 3)
+        sig1 = Sigmoid()
+        ff2 = FeedforwardLayer(3, 2)
+        sig2 = Sigmoid()
+
+        ff1.next(sig1).next(ff2).next(sig2).end()
+
+        data = [1,2]
+        actual = [0.5, 0.75]
+
+        ndl = np.zeros_like(ff1.W, np.float64)
+
+        for iy, ix in np.ndindex(ff1.W.shape):
+            pred = ff1.propogate(data)
+            ff1.W[iy, ix] += self.epsilon
+            pred2 = ff1.propogate(data)
+            ff1.W[iy, ix] -= self.epsilon
+
+            f1 = mse.getError(pred, actual)
+            f2 = mse.getError(pred2, actual)
+
+            ndl[iy, ix] = (f1 - f2)/self.epsilon
+
+        dlds = sig1.backwards(
+               ff2.backwards(
+               sig2.backwards(
+               mse.getDeriv(pred, actual))))
+        
         sdl = ff1.dldw(dlds)
 
         diff = np.abs(sdl - ndl)

@@ -15,6 +15,7 @@ def init_weights(shape):
     return weights
 
 def clip_gradient(grad, max_norm):
+    return grad
     grad_norm = np.linalg.norm(grad)
     if grad_norm > max_norm:
         grad = grad * (max_norm / grad_norm)
@@ -51,7 +52,7 @@ class Layer():
     
     def backpropogateRange(self, accs, X):
         for acc, x in zip(accs, X):
-            self.input = x
+            self.end().propogate(x)
             self.backpropogate(acc)
 
     def next(self, n):
@@ -63,6 +64,12 @@ class Layer():
     def end(self):
         if self.prev:
             return self.prev.end()
+        else:
+            return self
+        
+    def tail(self):
+        if self.n:
+            return self.n.tail()
         else:
             return self
 
@@ -90,12 +97,12 @@ class FeedforwardLayer(Layer):
     # dh/dwij = d(wij * xj)/dwij
     #         = xj
     #
-    # dh/dxj = d(wij * xj)/dxj
-    # dh/dxj = wij
+    # dh/dxj = sum d(wij * xj)/dxj
+    # dh/dxj = sum (wij)
     #
     # Vectorized:
     # dh/dw Matrix full of xj
-    # dh/dx Matrix W
+    # dh/dx Matrix W summed row
 
     def __init__(self, inputsize, size=10):
         super().__init__()
@@ -105,24 +112,25 @@ class FeedforwardLayer(Layer):
 
     def propogate(self, X):
         X = np.asarray(X)
+        assert X.size == self.W.shape[0]
         self.input = X
         self.H = np.dot(X, self.W)
         return super().propogate(X)
     
     def backpropogate(self, dldh=1):
         dW = clip_gradient(Layer.alpha * self.dldw(dldh), 2.0)
-        self.W += dW
         assert dW.shape == self.W.shape
+        self.W += dW
         if d_debug: 
             print(f"{self.input} -> {self.H} Updating weight by {Layer.alpha} * {dldh} * {self.dhdw()} = {dW}")
-
         super().backpropogate(dldh)
 
+
     def backwards(self, dldh):
-        return dldh * self.dhdi()
+        return np.dot(self.dhdi(), dldh).flatten()
     
     def dhdi(self):
-        return np.dot(np.ones_like(self.input), self.W)
+        return self.W
 
     def dldw(self, dldh):
         #return self.input * np.ones_like(self.W)
@@ -211,7 +219,7 @@ class Trainer:
                 pred = model.propogateRange(batch_X).squeeze()
                 losses.append(np.mean(error.getError(pred, batch_Y)))
 
-                model.backpropogateRange(error.getDeriv(pred, batch_Y), batch_X)
+                model.tail().backpropogateRange(error.getDeriv(pred, batch_Y), batch_X)
                 if d_debug: 
                     input()
                     print(Layer.getHeader())
