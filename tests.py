@@ -150,6 +150,25 @@ class NumericalChecks(unittest.TestCase):
         diff = np.abs(sdl - ndl)
         self.assertLess(np.mean(diff), self.acceptableMargin)
 
+    def test_bce(self):
+        bce = BinaryCrossEntropy()
+        pred = np.array([1,0,1,1,0], np.float64)
+        true = np.array([0,1,1,0,1], np.float64)
+        
+        ndl = np.zeros_like(pred)
+
+        for i in np.ndindex(ndl.shape):
+            f1 = bce.getError(pred, true)
+            pred[i] += self.epsilon
+            f2 = bce.getError(pred, true)
+            pred[i] -= self.epsilon
+            ndl[i] = (f1-f2)/self.epsilon
+
+        sdl = bce.getDeriv(pred, true)
+
+        diff = np.abs(sdl - ndl)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
     def test_sigmoid_dhdi(self):
         s = Sigmoid()
         i = np.asarray([1,2,3,4,5], np.float64)
@@ -242,6 +261,105 @@ class NumericalChecks(unittest.TestCase):
 
         diff = np.abs(sdt - ndt)
         self.assertLess(np.mean(diff), self.acceptableMargin)
+
+'''
+
+class RNN_NumericalChecks(unittest.TestCase):
+    epsilon = 1e-14
+    acceptableMargin = 1e-7
+
+    def test_recurrent(self):
+        rnn = RecurrentLayer(1,1)
+
+        rnn.W1[0][0] = 3
+        rnn.W2[0][0] = 4
+
+        r1 = rnn.propogate(1)
+        r2 = rnn.propogate(2)
+        r3 = rnn.propogate(3)
+
+        self.assertEqual(r1, 3*1)
+        self.assertEqual(r2, r1 * 4 + 2 * 3)
+        self.assertEqual(r3, r2 * 4 + 3 * 3)
+
+    def test_dldw_small(self):
+        mse = MeanSquareError()
+        rnn = RecurrentLayer(1, 1)
+
+        rnn.W1 = np.ones_like(rnn.W1) * 1
+        rnn.W2 = np.ones_like(rnn.W2) * 1
+
+        data = np.asarray([[[1], [2]]], np.float32)
+        actual = np.asarray([[[2], [4]]], np.float32)
+
+        ndl = np.zeros_like(rnn.W1, np.float64)
+
+        for iy, ix in np.ndindex(rnn.W1.shape):
+            pred = rnn.propogateRange(data)
+            rnn.clear()
+            rnn.W1[iy, ix] += self.epsilon
+            pred2 = rnn.propogateRange(data)
+            rnn.clear()
+            rnn.W1[iy, ix] -= self.epsilon
+
+            f1 = mse.getError(pred, actual)
+            f2 = mse.getError(pred2, actual)
+
+            ndl[iy, ix] = (f1 - f2)/self.epsilon
+
+        pred = rnn.propogateRange(data)
+        #sdl1 = rnn.dldw1(mse.getDeriv(pred[0][0], actual[0][0]), 0)
+        #sdl2 = rnn.dldw1(mse.getDeriv(pred[0][1], actual[0][1]), 1)
+        
+        sdl1 = rnn.dldw1(pred[0][0], 0)
+        sdl2 = rnn.dldw1(pred[0][1], 1)
+        sdl = sdl1 + sdl2
+
+        diff = np.abs(sdl - ndl)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
+    def test_dldw1(self):
+        mse = MeanSquareError()
+        rnn = RecurrentLayer(2, 3)
+
+        rnn.W1 = np.ones_like(rnn.W1) * 1
+        rnn.W2 = np.ones_like(rnn.W2) * 1
+
+        data = np.asarray([[[1,2], [3,4]]], np.float32)
+        actual = np.asarray([[[0.5, 0.75, 0.23], [0.35, 0.12, 0.34]]], np.float32)
+
+        ndl = np.zeros_like(rnn.W1, np.float64)
+
+        for iy, ix in np.ndindex(rnn.W1.shape):
+            pred = rnn.propogateRange(data)
+            rnn.clear()
+            rnn.W1[iy, ix] += self.epsilon
+            pred2 = rnn.propogateRange(data)
+            rnn.clear()
+            rnn.W1[iy, ix] -= self.epsilon
+
+            f1 = mse.getError(pred, actual)
+            f2 = mse.getError(pred2, actual)
+
+            ndl[iy, ix] = (f1 - f2)/self.epsilon
+
+        pred = rnn.propogateRange(data)
+        sdl1 = rnn.dldw1(mse.getDeriv(pred[0][0], actual[0][0]), 0)
+        sdl2 = rnn.dldw1(mse.getDeriv(pred[0][1], actual[0][1]), 1)
+        sdl = sdl1 + sdl2
+
+        diff = np.abs(sdl - ndl)
+        self.assertLess(np.mean(diff), self.acceptableMargin)
+
+    def test_dhdw(self):
+        return
+        rnn = RecurrentLayer(2, 3)
+
+        data = np.asarray([[[1,2], [3,4]]], np.float32)
+        actual = np.asarray([[[0.5, 0.75, 0.23], [0.35, 0.12, 0.34]]], np.float32)
+
+        dhdw = np.zeroes(())
+'''
 
 if __name__=="__main__":
     unittest.main()
