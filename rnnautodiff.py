@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 # Used https://www.youtube.com/watch?v=UpLtbV4L6PI as reference
 
@@ -100,6 +101,10 @@ class Layer():
     def print(self):
         if self.n:
             self.n.print()
+
+    def save(self, filename="model.w"):
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
 
     def clear(self):
         pass
@@ -355,7 +360,7 @@ class MeanSquareError(Error):
     
 
 class Trainer:
-    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1, batchsize=32):
+    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1, batchsize=32, batchprintinterval=5):
         batchsize = batchsize if batchsize < x.shape[0] else x.shape[0]
         batchcount = int(np.ceil(x.shape[0] / batchsize))
         for epoch in range(epochs):
@@ -374,9 +379,10 @@ class Trainer:
                 if d_debug: 
                     input()
                     print(Layer.getHeader())
+                print(f"==> Batch {i}: {np.mean(losses[-batchprintinterval:-1])}", end="\r")
 
             if epoch % printinterval == 0:
-                print(f"Epoch {epoch}: {np.mean(losses)}")
+                print(f"Epoch {epoch}: {np.mean(losses):.3g} {np.median(losses):.3g}")
 
     def trainRNN_MTM(model: RecurrentLayer, x, y, error: Error, epochs=100, printinterval=1):
         for epoch in range(epochs):

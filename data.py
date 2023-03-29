@@ -18,5 +18,5 @@ def getData():
     test_X = np.reshape(test_X, [-1, inputSize])
     test_X = test_X.astype('float32') / 255
 
-    return train_X, train_y, train_X, test_y
+    return train_X, train_y, test_X, test_y
 
