@@ -1,18 +1,22 @@
-import numpy
+from keras.datasets import mnist
+from keras.utils import to_categorical
 
-def getx():
-    return numpy.random.randint(20, size=(100, 10,1)).astype(numpy.float32) % 2
+import numpy as np
 
-def gety(x):
-    y = numpy.zeros_like(x)
+def getData():
+    (train_X, train_y), (test_X, test_y) = mnist.load_data()
+
+    train_y = to_categorical(train_y)
+    test_y = to_categorical(test_y)
+
+    imageSize = train_X.shape[1]
+    inputSize = imageSize * imageSize
     
+    # Normalize and reshape to 1d
+    train_X = np.reshape(train_X, [-1, inputSize])
+    train_X = train_X.astype('float32') / 255
+    test_X = np.reshape(test_X, [-1, inputSize])
+    test_X = test_X.astype('float32') / 255
 
-    for l in x[0]:
-        c = 0
-        acc = 0
-        for i in l:
-            acc += i
-            l[c] = acc % 2
-            c+=1
+    return train_X, train_y, train_X, test_y
 
-    return y 
