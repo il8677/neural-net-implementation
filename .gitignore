@@ -1,2 +1,7 @@
 __pycache__/
 *.w
+.DS_STORE
+*.csv
+*.h
+.vscode
+*.zip
