@@ -360,12 +360,9 @@ class MeanSquareError(Error):
     
 
 class Trainer:
-    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1, batchsize=32, batchprintinterval=5, lossesout=None):
+    def train(model: Layer, x, y, error: Error, epochs=100, printinterval=1, batchsize=32, batchprintinterval=5, cb=None):
         batchsize = batchsize if batchsize < x.shape[0] else x.shape[0]
         batchcount = int(np.ceil(x.shape[0] / batchsize))
-
-        if lossesout: outfile = open(lossesout, "a")
-        else: outfile = None
 
         for epoch in range(epochs):
             losses = []
@@ -387,9 +384,7 @@ class Trainer:
 
             if epoch % printinterval == 0:
                 print(f"Epoch {epoch}: {np.mean(losses):.3g} {np.median(losses):.3g}")
-            if outfile: outfile.write(f"{np.mean(losses)}\n")
-
-        if outfile: outfile.close()
+            if cb: cb(model, losses)
 
     def trainRNN_MTM(model: RecurrentLayer, x, y, error: Error, epochs=100, printinterval=1):
         for epoch in range(epochs):

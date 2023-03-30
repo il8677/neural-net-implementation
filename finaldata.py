@@ -18,10 +18,29 @@ def train(alpha, epochs, filename):
 
     model = FeedforwardLayer(784, 800).next(Sigmoid())\
             .next(FeedforwardLayer(800, 10)).next(Sigmoid()).end()
+    with open(filename+".csv", "w") as f:
 
-    Trainer.train(model, train_X, train_y, MeanSquareError(), epochs, lossesout=filename+".csv", batchsize=1)
+        def dataGather(m, l):
+            f.write(f"{np.mean(l)},{evaluateModel(m)/test_X.shape[0]}\n")
+
+        Trainer.train(model, train_X, train_y, MeanSquareError(), epochs, cb=dataGather, batchsize=1)
 
     model.save(filename)
+
+def evaluateModel(model):
+    totalCorrect = 0
+
+    for i in range(test_X.shape[0]-1):
+        ans = model.propogate(test_X[i])
+
+        # Convert to one hot classification
+        ansoh = np.copy(ans)
+        ansoh[ans == np.max(ans)] = 1
+        ansoh[ans != np.max(ans)] = 0
+
+        if np.array_equal(ansoh, test_y[i]): totalCorrect += 1
+
+    return totalCorrect
 
 def evaluate(filename):
     if os.path.isfile(filename):
@@ -29,18 +48,8 @@ def evaluate(filename):
         with open(filename, "rb") as f:
             model = pickle.load(f)
 
-        totalCorrect = 0
-
-        for i in range(test_X.shape[0]-1):
-            ans = model.propogate(test_X[i])
-
-            # Convert to one hot classification
-            ansoh = np.copy(ans)
-            ansoh[ans == np.max(ans)] = 1
-            ansoh[ans != np.max(ans)] = 0
-
-            if np.array_equal(ansoh, test_y[i]): totalCorrect += 1
-
+        totalCorrect = evaluateModel(model)
+        
         print(f"{filename} accuracy: {totalCorrect/test_X.shape[0]} ({totalCorrect}/{test_X.shape[0]})")
 
 if __name__=="__main__":

@@ -18,9 +18,8 @@ if not len(os.sys.argv) == 2:
     model.compile(loss="mse", optimizer=keras.optimizers.SGD(learning_rate=0.1), metrics=[keras.metrics.CategoricalAccuracy()])
     history = model.fit(train_X, train_y, epochs=20, batch_size=1)
     model.save("kerasmodel.w")
-    import pickle
-    with open("kerashistory.h", "wb") as f:
-        pickle.dump(history, f)
+    with open("kerashistory.h", "w") as f:
+        f.write(history.history)
 else:
     model = keras.models.load_model(os.sys.argv[1])
     model.compile(optimizer=model.optimizer,
